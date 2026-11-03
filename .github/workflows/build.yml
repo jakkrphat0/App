@@ -26,10 +26,21 @@ jobs:
 
       - name: Build debug APK
         working-directory: ${{ env.PROJ }}
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: |
+          set +e
+          gradle assembleDebug --no-daemon --stacktrace > build.log 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            {
+              echo '### Build errors'
+              echo '```'
+              grep -nE '^e: |error:|What went wrong|FAILED|Unresolved|Could not|Execution failed' -A4 build.log | head -60
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $code
 
       - uses: actions/upload-artifact@v4
         with:
           name: MoneyTrack-APK
           path: ${{ env.PROJ }}/app/build/outputs/apk/debug/app-debug.apk
-          
